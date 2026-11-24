@@ -5,85 +5,86 @@ import {
   Moon,
   Plus,
   RotateCcw,
-  SlidersHorizontal,
   Sun,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react';
-import { AddLeadModal } from './components/AddLeadModal';
-import { AuditTable, type EditableLeadField } from './components/AuditTable';
-import { ColumnMappingModal } from './components/ColumnMappingModal';
-import { DuplicatesView } from './components/DuplicatesView';
-import { SummaryView } from './components/SummaryView';
+import { UniversalSheetGrid } from './components/UniversalSheetGrid';
 import type {
-  ConsolidatedLead,
-  ConsolidationOutput,
-  DestinationTab,
-  ParsedSheet,
+  SheetFilterState,
+  UniversalRow,
+  UniversalSheet,
+  UniversalWorkbook,
 } from './types/audit';
-import { consolidateWorkbook } from './utils/consolidator';
-import { exportConsolidatedWorkbook } from './utils/excelExporter';
-import { mergeUrls, normalizeLeadName } from './utils/normalizer';
+import { exportUniversalWorkbook } from './utils/excelExporter';
 import { buildSampleAuditFile } from './utils/sampleWorkbook';
-import { parseUploadedFiles } from './utils/workbookParser';
+import { parseUniversalFiles } from './utils/workbookParser';
 
-type ActiveTab =
-  | DestinationTab
-  | 'Summary'
-  | 'Duplicates Merged';
+const STORAGE_KEY = 'ridge_universal_lead_audit_v1';
 
 interface UndoSnapshot {
   message: string;
-  previousOutput: ConsolidationOutput;
-  targetTab: ActiveTab;
+  previousWorkbook: UniversalWorkbook;
+  targetSheetName: string;
 }
 
-const TAB_KEYS: Record<
-  DestinationTab,
-  'confirmed' | 'cannotVerify' | 'refuted' | 'noNeedResult'
-> = {
-  Confirmed: 'confirmed',
-  'Cannot Verify': 'cannotVerify',
-  Refuted: 'refuted',
-  'No Need Result': 'noNeedResult',
-};
-
-function recalcTotals(next: ConsolidationOutput): ConsolidationOutput {
-  const renumber = (list: ConsolidatedLead[]) =>
-    list.map((item, idx) => ({ ...item, rowNumber: idx + 1 }));
-
-  const confirmed = renumber(next.confirmed);
-  const cannotVerify = renumber(next.cannotVerify);
-  const refuted = renumber(next.refuted);
-  const noNeedResult = renumber(next.noNeedResult);
-
-  const totalUniqueLeads =
-    confirmed.length + cannotVerify.length + refuted.length + noNeedResult.length;
-
-  return {
-    ...next,
-    confirmed,
-    cannotVerify,
-    refuted,
-    noNeedResult,
-    totalUniqueLeads,
-  };
+function loadSavedWorkbook(): UniversalWorkbook | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as UniversalWorkbook;
+    if (
+      parsed &&
+      typeof parsed.fileName === 'string' &&
+      Array.isArray(parsed.sheets) &&
+      parsed.sheets.length > 0
+    ) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
-function createEmptyOutput(): ConsolidationOutput {
+function createBlankWorkbook(): UniversalWorkbook {
+  const now = new Date().toISOString();
+  const defaultCols = [
+    'lead_id',
+    'display_name',
+    'city',
+    'state',
+    'website',
+    'verdict',
+    'proven_fact',
+    'target_trigger',
+    'channel',
+    'contact_value',
+    'batch',
+    'Prompt',
+  ];
+
   return {
-    fileName: 'Manual Audit Tracker',
-    processedAt: new Date().toISOString(),
-    totalRawRows: 0,
-    totalUniqueLeads: 0,
-    duplicatesRemoved: 0,
-    confirmed: [],
-    cannotVerify: [],
-    refuted: [],
-    noNeedResult: [],
-    duplicates: [],
-    sheetBreakdowns: [],
-    parsedSheets: [],
+    fileName: 'Blank Lead Audit Workbook',
+    loadedAt: now,
+    updatedAt: now,
+    sheets: [
+      {
+        id: `sheet_blank_${Date.now()}`,
+        name: 'SEND-NOW',
+        columns: defaultCols,
+        promptInjected: false,
+        rows: [],
+      },
+      {
+        id: `sheet_verify_${Date.now() + 1}`,
+        name: 'VERIFY-FIRST',
+        columns: [...defaultCols],
+        promptInjected: false,
+        rows: [],
+      },
+    ],
   };
 }
 
@@ -91,14 +92,20 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const undoTimerRef = useRef<number | null>(null);
 
-  const [output, setOutput] = useState<ConsolidationOutput | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('Confirmed');
+  const [workbook, setWorkbook] = useState<UniversalWorkbook | null>(() =>
+    loadSavedWorkbook()
+  );
+  const [activeSheetName, setActiveSheetName] = useState<string>(() => {
+    const saved = loadSavedWorkbook();
+    return saved?.sheets[0]?.name ?? '';
+  });
+  const [filtersBySheet, setFiltersBySheet] = useState<
+    Record<string, SheetFilterState>
+  >({});
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [showMappingModal, setShowMappingModal] = useState(false);
-  const [addModalDest, setAddModalDest] = useState<DestinationTab | null>(null);
   const [undoToast, setUndoToast] = useState<UndoSnapshot | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     try {
@@ -123,20 +130,35 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    try {
+      if (workbook) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(workbook));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [workbook]);
+
+  useEffect(() => {
     return () => {
       if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
     };
   }, []);
 
-  const allLeads = useMemo(() => {
-    if (!output) return [];
-    return [
-      ...output.confirmed,
-      ...output.cannotVerify,
-      ...output.refuted,
-      ...output.noNeedResult,
-    ];
-  }, [output]);
+  const activeSheet: UniversalSheet | null = useMemo(() => {
+    if (!workbook || workbook.sheets.length === 0) return null;
+    return (
+      workbook.sheets.find((s) => s.name === activeSheetName) ??
+      workbook.sheets[0]
+    );
+  }, [workbook, activeSheetName]);
+
+  const totalRowsCount = useMemo(() => {
+    if (!workbook) return 0;
+    return workbook.sheets.reduce((sum, sheet) => sum + sheet.rows.length, 0);
+  }, [workbook]);
 
   const pushUndoToast = (snapshot: UndoSnapshot) => {
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
@@ -149,8 +171,8 @@ export default function App() {
   const handleUndo = () => {
     if (!undoToast) return;
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
-    setOutput(undoToast.previousOutput);
-    setActiveTab(undoToast.targetTab);
+    setWorkbook(undoToast.previousWorkbook);
+    setActiveSheetName(undoToast.targetSheetName);
     setUndoToast(null);
   };
 
@@ -159,7 +181,7 @@ export default function App() {
       /\.(xlsx|xls|xlsm|csv)$/i.test(f.name)
     );
     if (files.length === 0) {
-      setErrorMsg('Please select an .xlsx, .xls, or .csv workbook file.');
+      setErrorMsg('Please select an .xlsx, .xls, .xlsm, or .csv file.');
       return;
     }
 
@@ -168,40 +190,19 @@ export default function App() {
     setUndoToast(null);
 
     try {
-      const parsed = await parseUploadedFiles(files);
-      const dataRowsCount = parsed
-        .filter((s) => s.category !== 'SUMMARY')
-        .reduce((acc, s) => acc + s.rows.length, 0);
-
-      if (parsed.length === 0 || dataRowsCount === 0) {
-        const sheetList = parsed.map((s) => s.sheetName).join(', ');
-        setErrorMsg(
-          parsed.length > 0
-            ? `Found worksheet(s) [${sheetList}] but could not locate lead rows. Review Column Mapping to align headers.`
-            : 'No readable worksheets found in the uploaded file.'
-        );
-        if (parsed.length > 0) {
-          const fallbackOutput = consolidateWorkbook(
-            files.map((f) => f.name).join(', '),
-            parsed
-          );
-          setOutput(fallbackOutput);
-          setShowMappingModal(true);
-        }
+      const parsed = await parseUniversalFiles(files);
+      if (parsed.sheets.length === 0) {
+        setErrorMsg('No readable worksheets or columns found in the uploaded file.');
         return;
       }
 
-      const displayFileName =
-        files.length === 1
-          ? files[0].name
-          : `${files.length} files (${files.map((f) => f.name).join(', ')})`;
-
-      const consolidated = consolidateWorkbook(displayFileName, parsed);
-      setOutput(consolidated);
-      setActiveTab('Confirmed');
+      setWorkbook(parsed);
+      setActiveSheetName(parsed.sheets[0].name);
+      setFiltersBySheet({});
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unable to parse spreadsheet file.';
-      setErrorMsg(msg);
+      setErrorMsg(
+        err instanceof Error ? err.message : 'Unable to parse spreadsheet file.'
+      );
     } finally {
       setIsProcessing(false);
       if (fileInputRef.current) {
@@ -216,17 +217,28 @@ export default function App() {
   };
 
   const handleStartBlank = () => {
-    setOutput(createEmptyOutput());
-    setActiveTab('Confirmed');
+    const blank = createBlankWorkbook();
+    setWorkbook(blank);
+    setActiveSheetName(blank.sheets[0].name);
+    setFiltersBySheet({});
+    setErrorMsg(null);
+    setUndoToast(null);
+  };
+
+  const handleClearWorkspace = () => {
+    setWorkbook(null);
+    setActiveSheetName('');
+    setFiltersBySheet({});
+    setUndoToast(null);
     setErrorMsg(null);
   };
 
   const handleExport = async () => {
-    if (!output) return;
+    if (!workbook) return;
     setIsExporting(true);
     setErrorMsg(null);
     try {
-      await exportConsolidatedWorkbook(output);
+      await exportUniversalWorkbook(workbook);
     } catch (err) {
       setErrorMsg(
         err instanceof Error ? err.message : 'Failed to generate Excel download.'
@@ -236,202 +248,156 @@ export default function App() {
     }
   };
 
-  const handleUpdateField = (
-    id: string,
-    status: DestinationTab,
-    field: EditableLeadField,
+  const handleUpdateCell = (
+    sheetName: string,
+    rowId: string,
+    column: string,
     value: string
   ) => {
-    setOutput((prev) => {
+    setWorkbook((prev) => {
       if (!prev) return prev;
-      const key = TAB_KEYS[status];
       return {
         ...prev,
-        [key]: prev[key].map((item) => {
-          if (item.id !== id) return item;
-          const updated: ConsolidatedLead = {
-            ...item,
-            [field]: value,
+        updatedAt: new Date().toISOString(),
+        sheets: prev.sheets.map((sheet) => {
+          if (sheet.name !== sheetName) return sheet;
+          return {
+            ...sheet,
+            rows: sheet.rows.map((row) =>
+              row.id === rowId
+                ? { ...row, cells: { ...row.cells, [column]: value } }
+                : row
+            ),
           };
-          if (field === 'name') {
-            updated.normalizedKey = normalizeLeadName(value);
-          }
-          return updated;
         }),
       };
     });
   };
 
-  const handleDeleteLeads = (ids: string[], status: DestinationTab) => {
-    if (!output || ids.length === 0) return;
-    const idSet = new Set(ids);
-    const key = TAB_KEYS[status];
-    const previousOutput = output;
+  const handleAddRow = (sheetName: string) => {
+    if (!workbook) return;
+    const targetSheet = workbook.sheets.find((s) => s.name === sheetName);
+    if (!targetSheet) return;
 
-    const updated = recalcTotals({
-      ...output,
-      [key]: output[key].filter((item) => !idSet.has(item.id)),
+    const previousWorkbook = workbook;
+    const blankCells: Record<string, string> = {};
+    targetSheet.columns.forEach((col) => {
+      blankCells[col] = '';
     });
 
-    setOutput(updated);
-    pushUndoToast({
-      message: `Removed ${ids.length} lead${ids.length === 1 ? '' : 's'} from ${status}`,
-      previousOutput,
-      targetTab: status,
-    });
-  };
-
-  const handleMoveLead = (
-    id: string,
-    fromStatus: DestinationTab,
-    toStatus: DestinationTab
-  ) => {
-    if (!output || fromStatus === toStatus) return;
-    const fromKey = TAB_KEYS[fromStatus];
-    const toKey = TAB_KEYS[toStatus];
-    const targetLead = output[fromKey].find((item) => item.id === id);
-    if (!targetLead) return;
-
-    const previousOutput = output;
-    const movedLead: ConsolidatedLead = {
-      ...targetLead,
-      destination: toStatus,
+    const newRow: UniversalRow = {
+      id: `${targetSheet.id}_manual_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      cells: blankCells,
     };
 
-    const nextTargetList = [...output[toKey], movedLead].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-    );
-
-    const updated = recalcTotals({
-      ...output,
-      [fromKey]: output[fromKey].filter((item) => item.id !== id),
-      [toKey]: nextTargetList,
+    setWorkbook({
+      ...workbook,
+      updatedAt: new Date().toISOString(),
+      sheets: workbook.sheets.map((sheet) =>
+        sheet.name === sheetName
+          ? { ...sheet, rows: [newRow, ...sheet.rows] }
+          : sheet
+      ),
     });
 
-    setOutput(updated);
+    // Clear active filters on this sheet so the new blank row is visible immediately
+    setFiltersBySheet((prev) => ({
+      ...prev,
+      [sheetName]: { search: '', columnFilters: {} },
+    }));
+
     pushUndoToast({
-      message: `Moved "${targetLead.name}" from ${fromStatus} to ${toStatus}`,
-      previousOutput,
-      targetTab: fromStatus,
+      message: `Added new row to ${sheetName}`,
+      previousWorkbook,
+      targetSheetName: sheetName,
     });
   };
 
-  const handleAddLead = (draft: {
-    name: string;
-    url: string;
-    destination: DestinationTab;
-    claimVerbatim: string;
-    resultExplanation: string;
-    correctedPrompt: string;
-  }) => {
-    if (!output) return;
-    const normalizedKey = normalizeLeadName(draft.name);
-    const destKey = TAB_KEYS[draft.destination];
-    const newLead: ConsolidatedLead = {
-      id: `manual_${normalizedKey}_${Date.now()}`,
-      rowNumber: 0,
-      normalizedKey,
-      name: draft.name,
-      url: draft.url,
-      destination: draft.destination,
-      claimVerbatim: draft.claimVerbatim,
-      resultExplanation: draft.resultExplanation,
-      correctedPrompt: draft.correctedPrompt,
-      sourceTabs: ['Manual Entry'],
-      hasTableD: false,
-      tableDReason: '',
-      tableDPitch: '',
-      sourceAppearances: [],
-    };
+  const handleDeleteRows = (sheetName: string, rowIds: string[]) => {
+    if (!workbook || rowIds.length === 0) return;
+    const idSet = new Set(rowIds);
+    const previousWorkbook = workbook;
 
-    const previousOutput = output;
-    const updated = recalcTotals({
-      ...output,
-      [destKey]: [newLead, ...output[destKey]],
+    setWorkbook({
+      ...workbook,
+      updatedAt: new Date().toISOString(),
+      sheets: workbook.sheets.map((sheet) =>
+        sheet.name === sheetName
+          ? { ...sheet, rows: sheet.rows.filter((r) => !idSet.has(r.id)) }
+          : sheet
+      ),
     });
 
-    setOutput(updated);
-    setActiveTab(draft.destination);
     pushUndoToast({
-      message: `Added "${draft.name}" to ${draft.destination}`,
-      previousOutput,
-      targetTab: draft.destination,
+      message: `Deleted ${rowIds.length} row${rowIds.length === 1 ? '' : 's'} from ${sheetName}`,
+      previousWorkbook,
+      targetSheetName: sheetName,
     });
   };
 
-  const handleMoveExistingFromModal = (
-    existingLead: ConsolidatedLead,
-    targetDestination: DestinationTab
+  const handleMoveRows = (
+    fromSheetName: string,
+    rowIds: string[],
+    targetSheetName: string
   ) => {
-    handleMoveLead(existingLead.id, existingLead.destination, targetDestination);
-    setActiveTab(targetDestination);
-  };
+    if (!workbook || fromSheetName === targetSheetName || rowIds.length === 0) return;
+    const sourceSheet = workbook.sheets.find((s) => s.name === fromSheetName);
+    const targetSheet = workbook.sheets.find((s) => s.name === targetSheetName);
+    if (!sourceSheet || !targetSheet) return;
 
-  const handleMergeExistingFromModal = (
-    existingLead: ConsolidatedLead,
-    targetDestination: DestinationTab,
-    updates: {
-      url: string;
-      claimVerbatim: string;
-      resultExplanation: string;
-      correctedPrompt: string;
-    }
-  ) => {
-    if (!output) return;
-    const previousOutput = output;
-    const fromKey = TAB_KEYS[existingLead.destination];
-    const toKey = TAB_KEYS[targetDestination];
+    const idSet = new Set(rowIds);
+    const rowsToMove = sourceSheet.rows.filter((r) => idSet.has(r.id));
+    if (rowsToMove.length === 0) return;
 
-    const mergedLead: ConsolidatedLead = {
-      ...existingLead,
-      destination: targetDestination,
-      url: updates.url
-        ? mergeUrls([existingLead.url, updates.url])
-        : existingLead.url,
-      claimVerbatim: updates.claimVerbatim
-        ? existingLead.claimVerbatim
-          ? `${existingLead.claimVerbatim}\n${updates.claimVerbatim}`
-          : updates.claimVerbatim
-        : existingLead.claimVerbatim,
-      resultExplanation: updates.resultExplanation
-        ? existingLead.resultExplanation
-          ? `${existingLead.resultExplanation}\n${updates.resultExplanation}`
-          : updates.resultExplanation
-        : existingLead.resultExplanation,
-      correctedPrompt: updates.correctedPrompt || existingLead.correctedPrompt,
-    };
+    const previousWorkbook = workbook;
 
-    let updated: ConsolidationOutput;
-    if (fromKey === toKey) {
-      updated = recalcTotals({
-        ...output,
-        [fromKey]: output[fromKey].map((item) =>
-          item.id === existingLead.id ? mergedLead : item
-        ),
+    // Build case-insensitive lookup so fields carry cleanly across sheets
+    const mappedRows: UniversalRow[] = rowsToMove.map((row) => {
+      const lowerCellLookup = new Map<string, string>();
+      Object.entries(row.cells).forEach(([k, v]) => {
+        lowerCellLookup.set(k.trim().toLowerCase(), v);
       });
-    } else {
-      updated = recalcTotals({
-        ...output,
-        [fromKey]: output[fromKey].filter((item) => item.id !== existingLead.id),
-        [toKey]: [mergedLead, ...output[toKey]],
+
+      const nextCells: Record<string, string> = {};
+      targetSheet.columns.forEach((col) => {
+        if (Object.prototype.hasOwnProperty.call(row.cells, col)) {
+          nextCells[col] = row.cells[col] ?? '';
+        } else {
+          nextCells[col] = lowerCellLookup.get(col.trim().toLowerCase()) ?? '';
+        }
       });
-    }
 
-    setOutput(updated);
-    setActiveTab(targetDestination);
-    pushUndoToast({
-      message: `Merged details into "${existingLead.name}" in ${targetDestination}`,
-      previousOutput,
-      targetTab: existingLead.destination,
+      return {
+        id: row.id,
+        cells: nextCells,
+      };
     });
-  };
 
-  const handleApplyMappings = (updatedSheets: ParsedSheet[]) => {
-    if (!output) return;
-    const recomputed = consolidateWorkbook(output.fileName, updatedSheets);
-    setOutput(recomputed);
-    setShowMappingModal(false);
-    setErrorMsg(null);
+    setWorkbook({
+      ...workbook,
+      updatedAt: new Date().toISOString(),
+      sheets: workbook.sheets.map((sheet) => {
+        if (sheet.name === fromSheetName) {
+          return {
+            ...sheet,
+            rows: sheet.rows.filter((r) => !idSet.has(r.id)),
+          };
+        }
+        if (sheet.name === targetSheetName) {
+          return {
+            ...sheet,
+            rows: [...mappedRows, ...sheet.rows],
+          };
+        }
+        return sheet;
+      }),
+    });
+
+    pushUndoToast({
+      message: `Moved ${rowsToMove.length} row${rowsToMove.length === 1 ? '' : 's'} from ${fromSheetName} to ${targetSheetName}`,
+      previousWorkbook,
+      targetSheetName: fromSheetName,
+    });
   };
 
   const triggerFilePicker = () => {
@@ -442,7 +408,7 @@ export default function App() {
     <div
       role="group"
       aria-label="Color theme"
-      className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md shrink-0"
+      className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-md shrink-0"
     >
       <button
         type="button"
@@ -455,7 +421,7 @@ export default function App() {
         }`}
       >
         <Sun className="w-3.5 h-3.5" />
-        <span>White</span>
+        <span>Light</span>
       </button>
       <button
         type="button"
@@ -473,14 +439,20 @@ export default function App() {
     </div>
   );
 
+  const activeFilterState: SheetFilterState = activeSheet
+    ? filtersBySheet[activeSheet.name] ?? { search: '', columnFilters: {} }
+    : { search: '', columnFilters: {} };
+
+  const headerSheets = workbook ? workbook.sheets.slice(0, 5) : [];
+
   return (
     <div
-      className="min-h-screen flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-150"
+      className="min-h-screen flex flex-col bg-white dark:bg-[#080c14] text-slate-900 dark:text-slate-100 transition-colors duration-150"
       onDragOver={(e) => {
-        if (output) e.preventDefault();
+        if (workbook) e.preventDefault();
       }}
       onDrop={(e) => {
-        if (output && e.dataTransfer.files.length > 0) {
+        if (workbook && e.dataTransfer.files.length > 0) {
           e.preventDefault();
           handleFiles(e.dataTransfer.files);
         }
@@ -500,7 +472,7 @@ export default function App() {
       />
 
       {/* Top Bar Contract: 3 zones */}
-      <header className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
+      <header className="bg-white/90 dark:bg-[#080c14]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90 sticky top-0 z-40">
         <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between gap-8">
           <a
             href="#top"
@@ -510,44 +482,55 @@ export default function App() {
             }}
             className="text-base font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0"
           >
-            Lead Audit Consolidator
+            Ridge Creative Lead Auditor
           </a>
 
           <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-400">
-            {(
-              ['Confirmed', 'Cannot Verify', 'Refuted', 'No Need Result', 'Summary'] as ActiveTab[]
-            ).map((navTab) => (
-              <button
-                key={navTab}
-                type="button"
-                onClick={() => output && setActiveTab(navTab)}
-                className={`hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  output && activeTab === navTab ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : ''
-                }`}
-              >
-                {navTab}
-              </button>
-            ))}
+            {workbook ? (
+              headerSheets.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setActiveSheetName(s.name)}
+                  className={`hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    activeSheet?.name === s.name
+                      ? 'text-emerald-700 dark:text-emerald-400 font-semibold'
+                      : ''
+                  }`}
+                >
+                  {s.name}
+                </button>
+              ))
+            ) : (
+              <>
+                <span className="whitespace-nowrap shrink-0">Universal Ingestion</span>
+                <span className="whitespace-nowrap shrink-0">Prompt Injection</span>
+                <span className="whitespace-nowrap shrink-0">Inline Editing</span>
+                <span className="whitespace-nowrap shrink-0">Workbook Export</span>
+              </>
+            )}
           </nav>
 
           <div className="flex items-center shrink-0">
-            {output ? (
+            {workbook ? (
               <button
                 type="button"
                 onClick={handleExport}
                 disabled={isExporting}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>
-                  {isExporting ? 'Generating .xlsx...' : 'Export Cleaned Excel (.xlsx)'}
+                  {isExporting
+                    ? 'Generating .xlsx...'
+                    : 'Export Edited Excel (.xlsx)'}
                 </span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={triggerFilePicker}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>Upload Workbook</span>
@@ -574,16 +557,16 @@ export default function App() {
           </div>
         )}
 
-        {!output ? (
+        {!workbook ? (
           /* Drag-and-Drop Intake */
           <div className="max-w-4xl mx-auto py-8 space-y-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-3">
                 <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white text-balance">
-                  Restaurant Lead Audit Consolidator
+                  Universal Excel Lead Auditor &amp; Inline Editor
                 </h1>
                 <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
-                  Drop your multi-sheet <span className="font-mono text-sm text-emerald-700 dark:text-emerald-400">.xlsx</span> workbook to deduplicate leads across tabs, edit every cell inline, add leads manually, and export the exact 6-column Excel tracker.
+                  Drop any multi-sheet <span className="font-mono text-sm text-emerald-700 dark:text-emerald-400">.xlsx</span>, <span className="font-mono text-sm text-emerald-700 dark:text-emerald-400">.xls</span>, or <span className="font-mono text-sm text-emerald-700 dark:text-emerald-400">.csv</span> workbook. Every sheet and column is preserved verbatim with an automatic editable <span className="font-mono text-sm text-emerald-700 dark:text-emerald-400">Prompt</span> column injected on every tab.
                 </p>
               </div>
               {renderThemeSwitcher()}
@@ -602,7 +585,7 @@ export default function App() {
                   handleFiles(e.dataTransfer.files);
                 }
               }}
-              className={`bg-slate-50/70 dark:bg-slate-900 border-2 border-dashed rounded-xl p-14 flex flex-col items-center justify-center text-center transition-colors ${
+              className={`bg-slate-50/70 dark:bg-[#0c121e] border-2 border-dashed rounded-xl p-14 flex flex-col items-center justify-center text-center transition-colors ${
                 isDragging
                   ? 'border-emerald-600 dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20'
                   : 'border-slate-300 dark:border-slate-700 hover:border-emerald-500/60'
@@ -614,11 +597,11 @@ export default function App() {
 
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                 {isProcessing
-                  ? 'Parsing and deduplicating worksheets...'
-                  : 'Drag & drop your Claim audit tracker.xlsx'}
+                  ? 'Parsing worksheets and detecting headers...'
+                  : 'Drag & drop your lead master workbook'}
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 max-w-md">
-                Automatically extracts Name, URL, Destination, verbatim Claim, verbatim AI Result / Explanation, and leaves Corrected Prompt blank for your edits.
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 max-w-lg">
+                Preserves exact sheet tabs, original columns, and cell values while adding inline spreadsheet editing, row drawer inspection, auto-save, and clean Excel export.
               </p>
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -626,271 +609,152 @@ export default function App() {
                   type="button"
                   onClick={triggerFilePicker}
                   disabled={isProcessing}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Upload className="w-4 h-4" />
-                  <span>Select .xlsx / .xls File</span>
+                  <span>Select .xlsx / .xls / .csv</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleLoadSample}
                   disabled={isProcessing}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-[#080c14] border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
-                  Load Sample Workbook
+                  Load Sample Lead Master
                 </button>
 
                 <button
                   type="button"
                   onClick={handleStartBlank}
                   disabled={isProcessing}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Start Blank Tracker</span>
+                  <span>Start Blank Workbook</span>
                 </button>
               </div>
             </div>
           </div>
         ) : (
-          /* Active Workspace */
-          <div className="space-y-6">
+          /* Active Spreadsheet Workspace */
+          <div className="space-y-5">
             {/* Workspace Control Strip */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-5 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="bg-white dark:bg-[#0c121e] border border-slate-200 dark:border-slate-800 rounded-lg px-5 py-4 flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0">
                 <h1 className="text-base font-semibold text-slate-900 dark:text-white truncate">
-                  {output.fileName}
+                  {workbook.fileName}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono tabular-nums">
-                  <span>{output.totalRawRows} raw rows</span>
+                  <span>{workbook.sheets.length} sheets</span>
                   <span aria-hidden="true">·</span>
-                  <span>{output.sheetBreakdowns.length} data sheets</span>
+                  <span>{totalRowsCount.toLocaleString()} total rows</span>
+                  {activeSheet && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span>{activeSheet.columns.length} columns on {activeSheet.name}</span>
+                    </>
+                  )}
                   <span aria-hidden="true">·</span>
-                  <span>{output.duplicatesRemoved} duplicates eliminated</span>
+                  <span>Auto-saved</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
                 {renderThemeSwitcher()}
 
-                {output.parsedSheets.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowMappingModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                  >
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span>Column Mapping</span>
-                  </button>
-                )}
-
                 <button
                   type="button"
                   onClick={triggerFilePicker}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Load New Workbook</span>
+                  <span>Load New File</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleClearWorkspace}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 hover:border-rose-400/60 hover:text-rose-700 dark:hover:text-rose-300 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Close File</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>
-                    {isExporting ? 'Exporting...' : 'Export Cleaned Excel (.xlsx)'}
+                    {isExporting
+                      ? 'Exporting...'
+                      : 'Export Edited Excel (.xlsx)'}
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* 6-Card Executive KPI Dashboard */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveTab('Summary')}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer"
-              >
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Unique Leads</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
-                  {output.totalUniqueLeads.toLocaleString()}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('Confirmed')}
-                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
-                  activeTab === 'Confirmed'
-                    ? 'border-emerald-600/60 dark:border-emerald-500/60'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                <div className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Confirmed</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
-                  {output.confirmed.length.toLocaleString()}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('Cannot Verify')}
-                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
-                  activeTab === 'Cannot Verify'
-                    ? 'border-amber-600/60 dark:border-amber-500/60'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                <div className="text-xs font-medium text-amber-700 dark:text-amber-400">Cannot Verify</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
-                  {output.cannotVerify.length.toLocaleString()}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('Refuted')}
-                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
-                  activeTab === 'Refuted'
-                    ? 'border-rose-600/60 dark:border-rose-500/60'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                <div className="text-xs font-medium text-rose-700 dark:text-rose-400">Refuted</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
-                  {output.refuted.length.toLocaleString()}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('No Need Result')}
-                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
-                  activeTab === 'No Need Result'
-                    ? 'border-sky-600/60 dark:border-sky-500/60'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                <div className="text-xs font-medium text-sky-700 dark:text-sky-400">No Need Result</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
-                  {output.noNeedResult.length.toLocaleString()}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('Duplicates Merged')}
-                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
-                  activeTab === 'Duplicates Merged'
-                    ? 'border-emerald-600/60 dark:border-emerald-500/60'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Duplicates Merged</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-400 mt-1">
-                  {output.duplicatesRemoved.toLocaleString()}
-                </div>
-              </button>
-            </div>
-
-            {/* Dedicated Page Navigation Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto">
-              {(
-                [
-                  { id: 'Confirmed', count: output.confirmed.length },
-                  { id: 'Cannot Verify', count: output.cannotVerify.length },
-                  { id: 'Refuted', count: output.refuted.length },
-                  { id: 'No Need Result', count: output.noNeedResult.length },
-                  { id: 'Duplicates Merged', count: output.duplicates.length },
-                  { id: 'Summary', count: output.totalUniqueLeads },
-                ] as { id: ActiveTab; count: number }[]
-              ).map((tab) => {
-                const isActive = activeTab === tab.id;
+            {/* Dynamic Sheet Navigation Tabs */}
+            <div
+              role="tablist"
+              aria-label="Workbook sheets"
+              className="flex items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-[#0c121e] border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto"
+            >
+              {workbook.sheets.map((sheet) => {
+                const isActive = activeSheet?.name === sheet.name;
                 return (
                   <button
-                    key={tab.id}
+                    key={sheet.id}
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveSheetName(sheet.name)}
                     className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                       isActive
-                        ? 'bg-white dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-slate-200 dark:border-emerald-500/30 shadow-xs dark:shadow-none'
+                        ? 'bg-white dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-slate-200 dark:border-emerald-500/35 shadow-xs dark:shadow-none'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-transparent'
                     }`}
                   >
-                    <span>{tab.id}</span>
+                    <span>{sheet.name}</span>
                     <span
                       className={`font-mono tabular-nums text-[11px] ${
-                        isActive ? 'text-emerald-600 dark:text-emerald-200' : 'text-slate-400 dark:text-slate-500'
+                        isActive
+                          ? 'text-emerald-600 dark:text-emerald-200'
+                          : 'text-slate-400 dark:text-slate-500'
                       }`}
                     >
-                      {tab.count}
+                      ({sheet.rows.length})
                     </span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Active Page View */}
-            {activeTab === 'Confirmed' && (
-              <AuditTable
-                status="Confirmed"
-                rows={output.confirmed}
-                availableSheets={output.sheetBreakdowns.map((s) => s.sheetName)}
-                onOpenAddLead={() => setAddModalDest('Confirmed')}
-                onUpdateField={handleUpdateField}
-                onMoveLead={handleMoveLead}
-                onDeleteLeads={handleDeleteLeads}
-              />
-            )}
-
-            {activeTab === 'Cannot Verify' && (
-              <AuditTable
-                status="Cannot Verify"
-                rows={output.cannotVerify}
-                availableSheets={output.sheetBreakdowns.map((s) => s.sheetName)}
-                onOpenAddLead={() => setAddModalDest('Cannot Verify')}
-                onUpdateField={handleUpdateField}
-                onMoveLead={handleMoveLead}
-                onDeleteLeads={handleDeleteLeads}
-              />
-            )}
-
-            {activeTab === 'Refuted' && (
-              <AuditTable
-                status="Refuted"
-                rows={output.refuted}
-                availableSheets={output.sheetBreakdowns.map((s) => s.sheetName)}
-                onOpenAddLead={() => setAddModalDest('Refuted')}
-                onUpdateField={handleUpdateField}
-                onMoveLead={handleMoveLead}
-                onDeleteLeads={handleDeleteLeads}
-              />
-            )}
-
-            {activeTab === 'No Need Result' && (
-              <AuditTable
-                status="No Need Result"
-                rows={output.noNeedResult}
-                availableSheets={output.sheetBreakdowns.map((s) => s.sheetName)}
-                onOpenAddLead={() => setAddModalDest('No Need Result')}
-                onUpdateField={handleUpdateField}
-                onMoveLead={handleMoveLead}
-                onDeleteLeads={handleDeleteLeads}
-              />
-            )}
-
-            {activeTab === 'Duplicates Merged' && (
-              <DuplicatesView duplicates={output.duplicates} />
-            )}
-
-            {activeTab === 'Summary' && (
-              <SummaryView
-                output={output}
-                onJumpToTab={(tab) => setActiveTab(tab)}
+            {/* Active Sheet Editable Spreadsheet Grid */}
+            {activeSheet && (
+              <UniversalSheetGrid
+                sheet={activeSheet}
+                allSheetNames={workbook.sheets.map((s) => s.name)}
+                filterState={activeFilterState}
+                onFilterChange={(next) =>
+                  setFiltersBySheet((prev) => ({
+                    ...prev,
+                    [activeSheet.name]: next,
+                  }))
+                }
+                onAddRow={() => handleAddRow(activeSheet.name)}
+                onUpdateCell={(rowId, column, value) =>
+                  handleUpdateCell(activeSheet.name, rowId, column, value)
+                }
+                onMoveRows={(rowIds, targetSheetName) =>
+                  handleMoveRows(activeSheet.name, rowIds, targetSheetName)
+                }
+                onDeleteRows={(rowIds) =>
+                  handleDeleteRows(activeSheet.name, rowIds)
+                }
               />
             )}
           </div>
@@ -899,12 +763,14 @@ export default function App() {
 
       {/* 1-Click Undo Toast */}
       {undoToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-white dark:bg-slate-900 border border-emerald-500/40 shadow-xl rounded-lg px-4 py-3 flex items-center gap-4 text-sm">
-          <span className="text-slate-900 dark:text-slate-100">{undoToast.message}</span>
+        <div className="fixed bottom-6 right-6 z-50 bg-white dark:bg-[#0c121e] border border-emerald-500/40 shadow-xl rounded-lg px-4 py-3 flex items-center gap-4 text-sm">
+          <span className="text-slate-900 dark:text-slate-100">
+            {undoToast.message}
+          </span>
           <button
             type="button"
             onClick={handleUndo}
-            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Undo</span>
@@ -920,31 +786,12 @@ export default function App() {
         </div>
       )}
 
-      <footer className="border-t border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950 mt-12">
+      <footer className="border-t border-slate-200 dark:border-slate-900 bg-white dark:bg-[#080c14] mt-12">
         <div className="max-w-[1440px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
-          <span>Lead Audit Consolidator</span>
-          <span>Client-side SheetJS parsing, inline editing, and 6-column Excel export.</span>
+          <span>Ridge Creative Web Studio</span>
+          <span>Universal client-side workbook parsing, inline editing, and Excel export.</span>
         </div>
       </footer>
-
-      {addModalDest && output && (
-        <AddLeadModal
-          defaultDestination={addModalDest}
-          allLeads={allLeads}
-          onClose={() => setAddModalDest(null)}
-          onAddLead={handleAddLead}
-          onMoveExisting={handleMoveExistingFromModal}
-          onMergeExisting={handleMergeExistingFromModal}
-        />
-      )}
-
-      {showMappingModal && output && (
-        <ColumnMappingModal
-          sheets={output.parsedSheets}
-          onClose={() => setShowMappingModal(false)}
-          onApplyMappings={handleApplyMappings}
-        />
-      )}
     </div>
   );
 }
