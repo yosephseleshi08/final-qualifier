@@ -88,19 +88,19 @@ export function ColumnMappingModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/65 backdrop-blur-[1px] flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/65 backdrop-blur-[1px] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="bg-slate-900 border border-slate-800 rounded-lg w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-slate-100"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-slate-900 dark:text-slate-100 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div>
-            <h3 className="text-base font-semibold text-white">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
               Detected Worksheet & Column Mappings
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               Verify or adjust how columns in each uploaded worksheet map to the consolidated schema.
             </p>
           </div>
@@ -108,7 +108,7 @@ export function ColumnMappingModal({
             type="button"
             onClick={onClose}
             aria-label="Close column mapping"
-            className="p-2 text-slate-400 hover:text-white rounded-md hover:bg-slate-800 cursor-pointer"
+            className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -118,12 +118,12 @@ export function ColumnMappingModal({
           {drafts.map((sheet, idx) => (
             <div
               key={sheet.sheetName}
-              className="bg-slate-950 border border-slate-800 rounded-lg p-4 space-y-4"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-4 space-y-4"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
                 <div>
-                  <span className="text-sm font-semibold text-white">{sheet.sheetName}</span>
-                  <span className="text-xs font-mono text-slate-400 ml-3">
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white">{sheet.sheetName}</span>
+                  <span className="text-xs font-mono text-slate-500 dark:text-slate-400 ml-3">
                     Header row #{sheet.headerRowIndex + 1} · {sheet.rows.length} rows
                   </span>
                 </div>
@@ -131,7 +131,7 @@ export function ColumnMappingModal({
                 <select
                   value={sheet.category}
                   onChange={(e) => updateCategory(idx, e.target.value as SheetCategory)}
-                  className="px-2.5 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded text-slate-100"
+                  className="px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c.value} value={c.value}>
@@ -145,11 +145,11 @@ export function ColumnMappingModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {MAPPING_FIELDS.map(({ key, label }) => (
                     <div key={key}>
-                      <label className="block text-xs text-slate-400 mb-1">{label}</label>
+                      <label className="block text-xs text-slate-600 dark:text-slate-400 mb-1">{label}</label>
                       <select
                         value={sheet.mapping[key] || ''}
                         onChange={(e) => updateField(idx, key, e.target.value)}
-                        className="w-full px-2.5 py-1.5 text-xs bg-slate-900 border border-slate-700 rounded text-slate-100"
+                        className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-slate-100"
                       >
                         <option value="">— Not mapped —</option>
                         {sheet.headers.map((h) => (
@@ -166,18 +166,18 @@ export function ColumnMappingModal({
           ))}
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-800 bg-slate-950 flex items-center justify-end gap-3">
+        <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-slate-300 bg-slate-900 border border-slate-700 rounded-md hover:bg-slate-800 cursor-pointer"
+            className="px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleApply}
-            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-md hover:bg-emerald-500 cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-md hover:bg-emerald-700 dark:hover:bg-emerald-500 cursor-pointer"
           >
             Re-run Consolidation
           </button>

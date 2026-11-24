@@ -74,7 +74,7 @@ function AutoTextarea({
       placeholder={placeholder}
       aria-label={ariaLabel}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-2 py-1.5 text-xs leading-relaxed bg-transparent border border-transparent hover:border-slate-700 focus:border-emerald-500/70 focus:bg-slate-950 rounded text-slate-200 placeholder:text-slate-600 focus:outline-none resize-none transition-colors"
+      className="w-full px-2 py-1.5 text-xs leading-relaxed bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-emerald-600/70 dark:focus:border-emerald-500/70 focus:bg-white dark:focus:bg-slate-950 rounded text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none resize-none transition-colors"
     />
   );
 }
@@ -191,17 +191,17 @@ export function AuditTable({
 
   const destinationSelectTone =
     status === 'Confirmed'
-      ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30'
+      ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30'
       : status === 'Cannot Verify'
-        ? 'text-amber-300 bg-amber-500/10 border-amber-500/30'
+        ? 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30'
         : status === 'Refuted'
-          ? 'text-rose-300 bg-rose-500/10 border-rose-500/30'
-          : 'text-sky-300 bg-sky-500/10 border-sky-500/30';
+          ? 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30'
+          : 'text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-500/30';
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
       {/* Toolbar */}
-      <div className="px-5 py-4 border-b border-slate-800 space-y-3">
+      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[260px]">
             <div className="relative flex-1 min-w-[220px] max-w-md">
@@ -211,14 +211,14 @@ export function AuditTable({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={`Search ${status} by name, URL, claim, explanation, or prompt...`}
-                className="w-full pl-9 pr-8 py-2 text-sm bg-slate-950 border border-slate-800 rounded-md text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/60"
+                className="w-full pl-9 pr-8 py-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600/60 dark:focus:border-emerald-500/60"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => setSearch('')}
                   aria-label="Clear search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -230,8 +230,8 @@ export function AuditTable({
               onClick={() => setOnlyMultiTab((v) => !v)}
               className={`px-3 py-2 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 onlyMultiTab
-                  ? 'bg-emerald-600 text-white border-emerald-500'
-                  : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white'
+                  ? 'bg-emerald-600 text-white border-emerald-600 dark:border-emerald-500'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Multi-Tab Merged
@@ -242,8 +242,8 @@ export function AuditTable({
               onClick={() => setOnlyTableD((v) => !v)}
               className={`px-3 py-2 text-xs font-medium rounded-md border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 onlyTableD
-                  ? 'bg-emerald-600 text-white border-emerald-500'
-                  : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white'
+                  ? 'bg-emerald-600 text-white border-emerald-600 dark:border-emerald-500'
+                  : 'bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               Has Table D Enrichment
@@ -251,13 +251,13 @@ export function AuditTable({
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <span className="text-xs font-mono tabular-nums text-slate-400 whitespace-nowrap">
+            <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400 whitespace-nowrap">
               {filtered.length.toLocaleString()} of {rows.length.toLocaleString()}
             </span>
             <button
               type="button"
               onClick={onOpenAddLead}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>+ Add Lead</span>
@@ -273,8 +273,8 @@ export function AuditTable({
               onClick={() => setSheetFilter('ALL')}
               className={`px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 sheetFilter === 'ALL'
-                  ? 'bg-slate-800 text-emerald-300 border border-slate-700'
-                  : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-slate-300 dark:border-slate-700'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-transparent'
               }`}
             >
               All Tabs
@@ -286,8 +286,8 @@ export function AuditTable({
                 onClick={() => setSheetFilter(s === sheetFilter ? 'ALL' : s)}
                 className={`px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   sheetFilter === s
-                    ? 'bg-slate-800 text-emerald-300 border border-slate-700'
-                    : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                    ? 'bg-slate-100 dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-slate-300 dark:border-slate-700'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-transparent'
                 }`}
               >
                 {s}
@@ -298,15 +298,15 @@ export function AuditTable({
 
         {/* Bulk Selection Bar */}
         {selectedIds.size > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-emerald-950/50 border border-emerald-500/30 rounded-md">
-            <div className="text-xs font-medium text-emerald-200 font-mono tabular-nums">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-500/30 rounded-md">
+            <div className="text-xs font-medium text-emerald-800 dark:text-emerald-200 font-mono tabular-nums">
               {selectedIds.size} lead{selectedIds.size === 1 ? '' : 's'} selected
             </div>
             <div className="flex items-center gap-2.5">
               <button
                 type="button"
                 onClick={() => setSelectedIds(new Set())}
-                className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 Clear Selection
               </button>
@@ -326,7 +326,7 @@ export function AuditTable({
       {/* Editable 6-Column Spreadsheet Grid */}
       {filtered.length === 0 ? (
         <div className="px-6 py-16 text-center space-y-3">
-          <p className="text-sm font-medium text-slate-200">
+          <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
             {rows.length === 0
               ? `No leads in ${status} yet`
               : `No leads in ${status} match your filter`}
@@ -335,7 +335,7 @@ export function AuditTable({
             <button
               type="button"
               onClick={onOpenAddLead}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-md transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>+ Add Lead to {status}</span>
@@ -346,7 +346,7 @@ export function AuditTable({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950/70 text-xs font-medium text-slate-400">
+              <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70 text-xs font-medium text-slate-500 dark:text-slate-400">
                 <th className="py-3 px-3 w-10 text-center">
                   <input
                     type="checkbox"
@@ -356,7 +356,7 @@ export function AuditTable({
                     }}
                     onChange={toggleSelectAllVisible}
                     aria-label="Select all visible leads"
-                    className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-500"
+                    className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-emerald-600 dark:text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-600 dark:accent-emerald-500"
                   />
                 </th>
                 <th className="py-3 px-3 min-w-[175px]">Name</th>
@@ -368,7 +368,7 @@ export function AuditTable({
                 <th className="py-3 px-3 text-right w-20">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/80 text-sm align-top">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800/80 text-sm align-top">
               {filtered.map((item) => {
                 const isChecked = selectedIds.has(item.id);
                 const firstUrl = item.url.split(' | ')[0]?.trim() || '';
@@ -383,8 +383,8 @@ export function AuditTable({
                     key={item.id}
                     className={`transition-colors ${
                       isChecked
-                        ? 'bg-emerald-950/25 hover:bg-emerald-950/35'
-                        : 'hover:bg-slate-800/30'
+                        ? 'bg-emerald-50/70 hover:bg-emerald-50 dark:bg-emerald-950/25 dark:hover:bg-emerald-950/35'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'
                     }`}
                   >
                     <td className="py-2.5 px-3 text-center">
@@ -393,7 +393,7 @@ export function AuditTable({
                         checked={isChecked}
                         onChange={() => toggleRowSelection(item.id)}
                         aria-label={`Select ${item.name}`}
-                        className="w-4 h-4 mt-1.5 rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-500"
+                        className="w-4 h-4 mt-1.5 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-emerald-600 dark:text-emerald-500 focus:ring-emerald-500/40 cursor-pointer accent-emerald-600 dark:accent-emerald-500"
                       />
                     </td>
 
@@ -406,7 +406,7 @@ export function AuditTable({
                         onChange={(e) =>
                           onUpdateField(item.id, status, 'name', e.target.value)
                         }
-                        className="w-full px-2 py-1.5 text-xs font-semibold bg-transparent border border-transparent hover:border-slate-700 focus:border-emerald-500/70 focus:bg-slate-950 rounded text-white focus:outline-none transition-colors"
+                        className="w-full px-2 py-1.5 text-xs font-semibold bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-emerald-600/70 dark:focus:border-emerald-500/70 focus:bg-white dark:focus:bg-slate-950 rounded text-slate-900 dark:text-white focus:outline-none transition-colors"
                       />
                       {item.sourceTabs.length > 0 && (
                         <div className="px-2 text-[11px] text-slate-500 truncate max-w-[175px]">
@@ -426,7 +426,7 @@ export function AuditTable({
                           onChange={(e) =>
                             onUpdateField(item.id, status, 'url', e.target.value)
                           }
-                          className="w-full px-2 py-1.5 text-xs bg-transparent border border-transparent hover:border-slate-700 focus:border-emerald-500/70 focus:bg-slate-950 rounded text-emerald-300/90 placeholder:text-slate-600 focus:outline-none transition-colors"
+                          className="w-full px-2 py-1.5 text-xs bg-transparent border border-transparent hover:border-slate-300 dark:hover:border-slate-700 focus:border-emerald-600/70 dark:focus:border-emerald-500/70 focus:bg-white dark:focus:bg-slate-950 rounded text-emerald-700 dark:text-emerald-300/90 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none transition-colors"
                         />
                         {hasValidLink && (
                           <a
@@ -435,7 +435,7 @@ export function AuditTable({
                             rel="noopener noreferrer"
                             title={`Open ${firstUrl}`}
                             aria-label={`Open link for ${item.name}`}
-                            className="p-1 text-slate-500 hover:text-emerald-300 shrink-0"
+                            className="p-1 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-300 shrink-0"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
@@ -460,7 +460,7 @@ export function AuditTable({
                           <option
                             key={tab}
                             value={tab}
-                            className="bg-slate-900 text-slate-100"
+                            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                           >
                             {tab}
                           </option>
@@ -510,12 +510,12 @@ export function AuditTable({
                               onClick={() =>
                                 handleCopyText(`row_prompt_${item.id}`, item.correctedPrompt)
                               }
-                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-slate-400 hover:text-emerald-300 rounded transition-colors whitespace-nowrap cursor-pointer"
+                              className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 rounded transition-colors whitespace-nowrap cursor-pointer"
                             >
                               {copiedId === `row_prompt_${item.id}` ? (
                                 <>
-                                  <Check className="w-3 h-3 text-emerald-400" />
-                                  <span className="text-emerald-300">Copied</span>
+                                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                                  <span className="text-emerald-700 dark:text-emerald-300">Copied</span>
                                 </>
                               ) : (
                                 <>
@@ -535,9 +535,9 @@ export function AuditTable({
                         <button
                           type="button"
                           onClick={() => setInspectedId(item.id)}
-                          title="Inspect source sheet evidence"
+                          title="View & edit all 6 columns"
                           aria-label={`Inspect ${item.name}`}
-                          className="p-1.5 text-slate-400 hover:text-emerald-300 hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -546,7 +546,7 @@ export function AuditTable({
                           onClick={() => onDeleteLeads([item.id], status)}
                           title="Delete lead"
                           aria-label={`Delete ${item.name}`}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded transition-colors cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -563,22 +563,22 @@ export function AuditTable({
       {/* Lead View & Edit Drawer (All 6 Columns Editable & Copyable) */}
       {inspectedLead && (
         <div
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[1px] flex justify-end"
+          className="fixed inset-0 z-50 bg-slate-900/40 dark:bg-black/60 backdrop-blur-[1px] flex justify-end"
           onClick={() => setInspectedId(null)}
         >
           <div
-            className="w-full max-w-2xl bg-slate-900 border-l border-slate-800 h-full overflow-y-auto p-6 flex flex-col gap-5 text-slate-100"
+            className="w-full max-w-2xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 h-full overflow-y-auto p-6 flex flex-col gap-5 text-slate-900 dark:text-slate-100 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-800">
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
               <div className="min-w-0">
-                <div className="text-xs font-mono text-slate-400">
+                <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
                   Key: {inspectedLead.normalizedKey}
                   {inspectedLead.sourceTabs.length > 0
                     ? ` · ${inspectedLead.sourceTabs.join(' · ')}`
                     : ''}
                 </div>
-                <h3 className="text-xl font-semibold text-white mt-1 truncate">
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white mt-1 truncate">
                   {inspectedLead.name || 'Untitled Lead'}
                 </h3>
               </div>
@@ -597,7 +597,7 @@ export function AuditTable({
                     ].join('\n');
                     handleCopyText('all_fields', allText);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-md hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-md hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors cursor-pointer"
                 >
                   {copiedId === 'all_fields' ? (
                     <>
@@ -615,7 +615,7 @@ export function AuditTable({
                   type="button"
                   onClick={() => setInspectedId(null)}
                   aria-label="Close inspector"
-                  className="p-2 text-slate-400 hover:text-white rounded-md hover:bg-slate-800 cursor-pointer"
+                  className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -627,7 +627,7 @@ export function AuditTable({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="drawer-name"
-                  className="text-xs font-semibold text-slate-300"
+                  className="text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Name
                 </label>
@@ -635,7 +635,7 @@ export function AuditTable({
                   type="button"
                   disabled={!inspectedLead.name}
                   onClick={() => handleCopyText('drawer_name', inspectedLead.name)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
                 >
                   {copiedId === 'drawer_name' ? (
                     <>
@@ -657,7 +657,7 @@ export function AuditTable({
                 onChange={(e) =>
                   onUpdateField(inspectedLead.id, status, 'name', e.target.value)
                 }
-                className="w-full px-3 py-2 text-sm font-semibold bg-slate-950 border border-slate-800 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/60"
+                className="w-full px-3 py-2 text-sm font-semibold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600/60 dark:focus:border-emerald-500/60"
               />
             </div>
 
@@ -666,7 +666,7 @@ export function AuditTable({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="drawer-url"
-                  className="text-xs font-semibold text-slate-300"
+                  className="text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   URL
                 </label>
@@ -680,7 +680,7 @@ export function AuditTable({
                       }
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-300 bg-slate-800 hover:text-white rounded"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded"
                     >
                       <span>Open</span>
                       <ExternalLink className="w-3 h-3" />
@@ -690,7 +690,7 @@ export function AuditTable({
                     type="button"
                     disabled={!inspectedLead.url}
                     onClick={() => handleCopyText('drawer_url', inspectedLead.url)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
                   >
                     {copiedId === 'drawer_url' ? (
                       <>
@@ -714,7 +714,7 @@ export function AuditTable({
                 onChange={(e) =>
                   onUpdateField(inspectedLead.id, status, 'url', e.target.value)
                 }
-                className="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-md text-emerald-300 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/60"
+                className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-emerald-700 dark:text-emerald-300 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-600/60 dark:focus:border-emerald-500/60"
               />
             </div>
 
@@ -723,7 +723,7 @@ export function AuditTable({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="drawer-destination"
-                  className="text-xs font-semibold text-slate-300"
+                  className="text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Destination
                 </label>
@@ -732,7 +732,7 @@ export function AuditTable({
                   onClick={() =>
                     handleCopyText('drawer_destination', inspectedLead.destination)
                   }
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded hover:bg-emerald-500/20 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20 cursor-pointer"
                 >
                   {copiedId === 'drawer_destination' ? (
                     <>
@@ -763,7 +763,7 @@ export function AuditTable({
                   <option
                     key={tab}
                     value={tab}
-                    className="bg-slate-900 text-slate-100"
+                    className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100"
                   >
                     {tab}
                   </option>
@@ -776,7 +776,7 @@ export function AuditTable({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="drawer-claim"
-                  className="text-xs font-semibold text-slate-300"
+                  className="text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Claim (verbatim)
                 </label>
@@ -786,7 +786,7 @@ export function AuditTable({
                   onClick={() =>
                     handleCopyText('drawer_claim', inspectedLead.claimVerbatim)
                   }
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
                 >
                   {copiedId === 'drawer_claim' ? (
                     <>
@@ -814,7 +814,7 @@ export function AuditTable({
                     e.target.value
                   )
                 }
-                className="w-full p-3 text-xs leading-relaxed bg-slate-950 border border-slate-800 rounded-md text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full p-3 text-xs leading-relaxed bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
             </div>
 
@@ -823,7 +823,7 @@ export function AuditTable({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="drawer-explanation"
-                  className="text-xs font-semibold text-slate-300"
+                  className="text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Result Explanation
                 </label>
@@ -833,7 +833,7 @@ export function AuditTable({
                   onClick={() =>
                     handleCopyText('drawer_explanation', inspectedLead.resultExplanation)
                   }
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
                 >
                   {copiedId === 'drawer_explanation' ? (
                     <>
@@ -861,7 +861,7 @@ export function AuditTable({
                     e.target.value
                   )
                 }
-                className="w-full p-3 text-xs leading-relaxed bg-slate-950 border border-slate-800 rounded-md text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full p-3 text-xs leading-relaxed bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
             </div>
 
@@ -870,7 +870,7 @@ export function AuditTable({
               <div className="flex items-center justify-between gap-2">
                 <label
                   htmlFor="drawer-prompt"
-                  className="text-xs font-semibold text-slate-300"
+                  className="text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Corrected Prompt
                 </label>
@@ -880,7 +880,7 @@ export function AuditTable({
                   onClick={() =>
                     handleCopyText('drawer_prompt', inspectedLead.correctedPrompt)
                   }
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20 disabled:opacity-40 cursor-pointer"
                 >
                   {copiedId === 'drawer_prompt' ? (
                     <>
@@ -908,14 +908,14 @@ export function AuditTable({
                     e.target.value
                   )
                 }
-                className="w-full p-3 text-xs leading-relaxed bg-slate-950 border border-slate-800 rounded-md text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full p-3 text-xs leading-relaxed bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
             </div>
 
             {inspectedLead.hasTableD && (
-              <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-lg space-y-2">
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-500/30 rounded-lg space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-semibold text-emerald-300">
+                  <span className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">
                     Table D Reference Intelligence
                   </span>
                   {inspectedLead.tableDPitch && (
@@ -924,7 +924,7 @@ export function AuditTable({
                       onClick={() =>
                         handleCopyText('tabled', inspectedLead.tableDPitch)
                       }
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded hover:bg-emerald-500/20 cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 bg-white dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20 cursor-pointer"
                     >
                       {copiedId === 'tabled' ? (
                         <>
@@ -941,14 +941,14 @@ export function AuditTable({
                   )}
                 </div>
                 {inspectedLead.tableDReason && (
-                  <p className="text-xs text-slate-200 leading-relaxed">
-                    <span className="font-semibold text-white">Reason: </span>
+                  <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+                    <span className="font-semibold text-slate-900 dark:text-white">Reason: </span>
                     {inspectedLead.tableDReason}
                   </p>
                 )}
                 {inspectedLead.tableDPitch && (
-                  <p className="text-xs text-slate-200 leading-relaxed">
-                    <span className="font-semibold text-white">
+                  <p className="text-xs text-slate-700 dark:text-slate-200 leading-relaxed">
+                    <span className="font-semibold text-slate-900 dark:text-white">
                       Corrected one-sentence pitch angle:{' '}
                     </span>
                     {inspectedLead.tableDPitch}
@@ -958,7 +958,7 @@ export function AuditTable({
             )}
 
             <div className="space-y-3">
-              <h4 className="text-xs font-semibold text-slate-300">
+              <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                 Raw Cross-Sheet Appearances ({inspectedLead.sourceAppearances.length})
               </h4>
               {inspectedLead.sourceAppearances.length === 0 ? (
@@ -966,28 +966,28 @@ export function AuditTable({
                   Manually added lead (no imported worksheet rows).
                 </p>
               ) : (
-                <div className="divide-y divide-slate-800 border border-slate-800 rounded-lg bg-slate-950">
+                <div className="divide-y divide-slate-200 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-950">
                   {inspectedLead.sourceAppearances.map((app, i) => (
                     <div key={i} className="p-4 text-xs space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-semibold text-white">
+                        <span className="font-semibold text-slate-900 dark:text-white">
                           {app.sheetName} · Raw Lead: {app.rawLead}
                         </span>
-                        <span className="font-mono text-emerald-300">
+                        <span className="font-mono text-emerald-700 dark:text-emerald-300">
                           {app.rawResult} → {app.rowClassification}
                         </span>
                       </div>
                       {app.claimVerbatim && (
-                        <p className="text-slate-300 leading-relaxed">
-                          <span className="font-medium text-slate-100">
+                        <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                          <span className="font-medium text-slate-900 dark:text-slate-100">
                             Claim (verbatim):{' '}
                           </span>
                           {app.claimVerbatim}
                         </p>
                       )}
                       {app.resultExplanation && (
-                        <p className="text-slate-400 leading-relaxed">
-                          <span className="font-medium text-slate-200">
+                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                          <span className="font-medium text-slate-800 dark:text-slate-200">
                             Result Explanation:{' '}
                           </span>
                           {app.resultExplanation}

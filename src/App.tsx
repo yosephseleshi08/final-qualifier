@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Download,
   FileSpreadsheet,
+  Moon,
   Plus,
   RotateCcw,
   SlidersHorizontal,
+  Sun,
   Upload,
   X,
 } from 'lucide-react';
@@ -98,6 +100,27 @@ export default function App() {
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [addModalDest, setAddModalDest] = useState<DestinationTab | null>(null);
   const [undoToast, setUndoToast] = useState<UndoSnapshot | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      return localStorage.getItem('audit-theme') === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('audit-theme', theme);
+    } catch {
+      // ignore storage errors
+    }
+  }, [theme]);
 
   useEffect(() => {
     return () => {
@@ -415,9 +438,44 @@ export default function App() {
     fileInputRef.current?.click();
   };
 
+  const renderThemeSwitcher = () => (
+    <div
+      role="group"
+      aria-label="Color theme"
+      className="inline-flex items-center p-0.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-md shrink-0"
+    >
+      <button
+        type="button"
+        onClick={() => setTheme('light')}
+        aria-pressed={theme === 'light'}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+          theme === 'light'
+            ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
+            : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 border border-transparent'
+        }`}
+      >
+        <Sun className="w-3.5 h-3.5" />
+        <span>White</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setTheme('dark')}
+        aria-pressed={theme === 'dark'}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+          theme === 'dark'
+            ? 'bg-slate-800 text-white border border-slate-700'
+            : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 border border-transparent'
+        }`}
+      >
+        <Moon className="w-3.5 h-3.5" />
+        <span>Dark</span>
+      </button>
+    </div>
+  );
+
   return (
     <div
-      className="min-h-screen flex flex-col bg-slate-950 text-slate-100"
+      className="min-h-screen flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-150"
       onDragOver={(e) => {
         if (output) e.preventDefault();
       }}
@@ -442,7 +500,7 @@ export default function App() {
       />
 
       {/* Top Bar Contract: 3 zones */}
-      <header className="bg-slate-950/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30">
+      <header className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30">
         <div className="max-w-[1440px] mx-auto px-6 h-16 flex items-center justify-between gap-8">
           <a
             href="#top"
@@ -450,12 +508,12 @@ export default function App() {
               e.preventDefault();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="text-base font-bold tracking-tight text-white whitespace-nowrap shrink-0"
+            className="text-base font-bold tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0"
           >
             Lead Audit Consolidator
           </a>
 
-          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-400">
+          <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-400">
             {(
               ['Confirmed', 'Cannot Verify', 'Refuted', 'No Need Result', 'Summary'] as ActiveTab[]
             ).map((navTab) => (
@@ -463,8 +521,8 @@ export default function App() {
                 key={navTab}
                 type="button"
                 onClick={() => output && setActiveTab(navTab)}
-                className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  output && activeTab === navTab ? 'text-emerald-400' : ''
+                className={`hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  output && activeTab === navTab ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : ''
                 }`}
               >
                 {navTab}
@@ -478,7 +536,7 @@ export default function App() {
                 type="button"
                 onClick={handleExport}
                 disabled={isExporting}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>
@@ -489,7 +547,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={triggerFilePicker}
-                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>Upload Workbook</span>
@@ -503,7 +561,7 @@ export default function App() {
         {errorMsg && (
           <div
             role="alert"
-            className="bg-rose-950/60 border border-rose-500/40 text-rose-200 rounded-lg px-5 py-3.5 text-sm flex items-center justify-between gap-4"
+            className="bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/40 text-rose-800 dark:text-rose-200 rounded-lg px-5 py-3.5 text-sm flex items-center justify-between gap-4"
           >
             <span>{errorMsg}</span>
             <button
@@ -519,13 +577,16 @@ export default function App() {
         {!output ? (
           /* Drag-and-Drop Intake */
           <div className="max-w-4xl mx-auto py-8 space-y-8">
-            <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white text-balance">
-                Restaurant Lead Audit Consolidator
-              </h1>
-              <p className="text-base text-slate-400 leading-relaxed max-w-2xl">
-                Drop your multi-sheet <span className="font-mono text-sm text-emerald-400">.xlsx</span> workbook to deduplicate leads across tabs, edit every cell inline, add leads manually, and export the exact 6-column Excel tracker.
-              </p>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-3">
+                <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white text-balance">
+                  Restaurant Lead Audit Consolidator
+                </h1>
+                <p className="text-base text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
+                  Drop your multi-sheet <span className="font-mono text-sm text-emerald-700 dark:text-emerald-400">.xlsx</span> workbook to deduplicate leads across tabs, edit every cell inline, add leads manually, and export the exact 6-column Excel tracker.
+                </p>
+              </div>
+              {renderThemeSwitcher()}
             </div>
 
             <div
@@ -541,22 +602,22 @@ export default function App() {
                   handleFiles(e.dataTransfer.files);
                 }
               }}
-              className={`bg-slate-900 border-2 border-dashed rounded-xl p-14 flex flex-col items-center justify-center text-center transition-colors ${
+              className={`bg-slate-50/70 dark:bg-slate-900 border-2 border-dashed rounded-xl p-14 flex flex-col items-center justify-center text-center transition-colors ${
                 isDragging
-                  ? 'border-emerald-400 bg-emerald-950/20'
-                  : 'border-slate-700 hover:border-emerald-500/50'
+                  ? 'border-emerald-600 dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-950/20'
+                  : 'border-slate-300 dark:border-slate-700 hover:border-emerald-500/60'
               }`}
             >
-              <div className="w-14 h-14 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-6">
-                <FileSpreadsheet className="w-7 h-7 text-emerald-400" />
+              <div className="w-14 h-14 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 flex items-center justify-center mb-6">
+                <FileSpreadsheet className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
               </div>
 
-              <h2 className="text-xl font-semibold text-white">
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
                 {isProcessing
                   ? 'Parsing and deduplicating worksheets...'
                   : 'Drag & drop your Claim audit tracker.xlsx'}
               </h2>
-              <p className="text-sm text-slate-400 mt-2 max-w-md">
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 max-w-md">
                 Automatically extracts Name, URL, Destination, verbatim Claim, verbatim AI Result / Explanation, and leaves Corrected Prompt blank for your edits.
               </p>
 
@@ -565,7 +626,7 @@ export default function App() {
                   type="button"
                   onClick={triggerFilePicker}
                   disabled={isProcessing}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Upload className="w-4 h-4" />
                   <span>Select .xlsx / .xls File</span>
@@ -575,7 +636,7 @@ export default function App() {
                   type="button"
                   onClick={handleLoadSample}
                   disabled={isProcessing}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-200 bg-slate-950 border border-slate-700 hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   Load Sample Workbook
                 </button>
@@ -584,7 +645,7 @@ export default function App() {
                   type="button"
                   onClick={handleStartBlank}
                   disabled={isProcessing}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-300 bg-slate-950 border border-slate-800 hover:border-slate-600 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Start Blank Tracker</span>
@@ -596,12 +657,12 @@ export default function App() {
           /* Active Workspace */
           <div className="space-y-6">
             {/* Workspace Control Strip */}
-            <div className="bg-slate-900 border border-slate-800 rounded-lg px-5 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-5 py-4 flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0">
-                <h1 className="text-base font-semibold text-white truncate">
+                <h1 className="text-base font-semibold text-slate-900 dark:text-white truncate">
                   {output.fileName}
                 </h1>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-0.5 font-mono tabular-nums">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono tabular-nums">
                   <span>{output.totalRawRows} raw rows</span>
                   <span aria-hidden="true">·</span>
                   <span>{output.sheetBreakdowns.length} data sheets</span>
@@ -611,11 +672,13 @@ export default function App() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                {renderThemeSwitcher()}
+
                 {output.parsedSheets.length > 0 && (
                   <button
                     type="button"
                     onClick={() => setShowMappingModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-200 bg-slate-950 border border-slate-700 hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                   >
                     <SlidersHorizontal className="w-3.5 h-3.5" />
                     <span>Column Mapping</span>
@@ -625,7 +688,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={triggerFilePicker}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-200 bg-slate-950 border border-slate-700 hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>Load New Workbook</span>
@@ -635,7 +698,7 @@ export default function App() {
                   type="button"
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded-md disabled:opacity-60 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>
@@ -650,10 +713,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('Summary')}
-                className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer"
               >
-                <div className="text-xs font-medium text-slate-400">Total Unique Leads</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-white mt-1">
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Unique Leads</div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
                   {output.totalUniqueLeads.toLocaleString()}
                 </div>
               </button>
@@ -661,14 +724,14 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('Confirmed')}
-                className={`bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
+                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
                   activeTab === 'Confirmed'
-                    ? 'border-emerald-500/60'
-                    : 'border-slate-800 hover:border-slate-700'
+                    ? 'border-emerald-600/60 dark:border-emerald-500/60'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                <div className="text-xs font-medium text-emerald-400">Confirmed</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-white mt-1">
+                <div className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Confirmed</div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
                   {output.confirmed.length.toLocaleString()}
                 </div>
               </button>
@@ -676,14 +739,14 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('Cannot Verify')}
-                className={`bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
+                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
                   activeTab === 'Cannot Verify'
-                    ? 'border-amber-500/60'
-                    : 'border-slate-800 hover:border-slate-700'
+                    ? 'border-amber-600/60 dark:border-amber-500/60'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                <div className="text-xs font-medium text-amber-400">Cannot Verify</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-white mt-1">
+                <div className="text-xs font-medium text-amber-700 dark:text-amber-400">Cannot Verify</div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
                   {output.cannotVerify.length.toLocaleString()}
                 </div>
               </button>
@@ -691,14 +754,14 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('Refuted')}
-                className={`bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
+                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
                   activeTab === 'Refuted'
-                    ? 'border-rose-500/60'
-                    : 'border-slate-800 hover:border-slate-700'
+                    ? 'border-rose-600/60 dark:border-rose-500/60'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                <div className="text-xs font-medium text-rose-400">Refuted</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-white mt-1">
+                <div className="text-xs font-medium text-rose-700 dark:text-rose-400">Refuted</div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
                   {output.refuted.length.toLocaleString()}
                 </div>
               </button>
@@ -706,14 +769,14 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('No Need Result')}
-                className={`bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
+                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
                   activeTab === 'No Need Result'
-                    ? 'border-sky-500/60'
-                    : 'border-slate-800 hover:border-slate-700'
+                    ? 'border-sky-600/60 dark:border-sky-500/60'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                <div className="text-xs font-medium text-sky-400">No Need Result</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-white mt-1">
+                <div className="text-xs font-medium text-sky-700 dark:text-sky-400">No Need Result</div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white mt-1">
                   {output.noNeedResult.length.toLocaleString()}
                 </div>
               </button>
@@ -721,21 +784,21 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('Duplicates Merged')}
-                className={`bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
+                className={`bg-white dark:bg-slate-900 border rounded-lg px-4 py-3.5 text-left transition-colors cursor-pointer ${
                   activeTab === 'Duplicates Merged'
-                    ? 'border-emerald-500/60'
-                    : 'border-slate-800 hover:border-slate-700'
+                    ? 'border-emerald-600/60 dark:border-emerald-500/60'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                <div className="text-xs font-medium text-slate-400">Duplicates Merged</div>
-                <div className="text-2xl font-bold font-mono tabular-nums text-emerald-400 mt-1">
+                <div className="text-xs font-medium text-slate-500 dark:text-slate-400">Duplicates Merged</div>
+                <div className="text-2xl font-bold font-mono tabular-nums text-emerald-700 dark:text-emerald-400 mt-1">
                   {output.duplicatesRemoved.toLocaleString()}
                 </div>
               </button>
             </div>
 
             {/* Dedicated Page Navigation Tabs */}
-            <div className="flex items-center gap-1 p-1 bg-slate-900 border border-slate-800 rounded-lg overflow-x-auto">
+            <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto">
               {(
                 [
                   { id: 'Confirmed', count: output.confirmed.length },
@@ -754,14 +817,14 @@ export default function App() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                       isActive
-                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                        : 'text-slate-400 hover:text-slate-100 border border-transparent'
+                        ? 'bg-white dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-slate-200 dark:border-emerald-500/30 shadow-xs dark:shadow-none'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 border border-transparent'
                     }`}
                   >
                     <span>{tab.id}</span>
                     <span
                       className={`font-mono tabular-nums text-[11px] ${
-                        isActive ? 'text-emerald-200' : 'text-slate-500'
+                        isActive ? 'text-emerald-600 dark:text-emerald-200' : 'text-slate-400 dark:text-slate-500'
                       }`}
                     >
                       {tab.count}
@@ -836,12 +899,12 @@ export default function App() {
 
       {/* 1-Click Undo Toast */}
       {undoToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-emerald-500/40 shadow-xl rounded-lg px-4 py-3 flex items-center gap-4 text-sm">
-          <span className="text-slate-100">{undoToast.message}</span>
+        <div className="fixed bottom-6 right-6 z-50 bg-white dark:bg-slate-900 border border-emerald-500/40 shadow-xl rounded-lg px-4 py-3 flex items-center gap-4 text-sm">
+          <span className="text-slate-900 dark:text-slate-100">{undoToast.message}</span>
           <button
             type="button"
             onClick={handleUndo}
-            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white dark:text-slate-950 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-400 dark:hover:bg-emerald-300 rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Undo</span>
@@ -850,14 +913,14 @@ export default function App() {
             type="button"
             onClick={() => setUndoToast(null)}
             aria-label="Dismiss undo notification"
-            className="text-slate-400 hover:text-white cursor-pointer"
+            className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      <footer className="border-t border-slate-900 bg-slate-950 mt-12">
+      <footer className="border-t border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950 mt-12">
         <div className="max-w-[1440px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
           <span>Lead Audit Consolidator</span>
           <span>Client-side SheetJS parsing, inline editing, and 6-column Excel export.</span>

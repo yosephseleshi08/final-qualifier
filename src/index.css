@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -9,8 +10,6 @@
 @layer base {
   body {
     font-family: var(--font-sans);
-    color: #f1f5f9;
-    background-color: #020617;
   }
 
   h1, h2, h3, h4 {
