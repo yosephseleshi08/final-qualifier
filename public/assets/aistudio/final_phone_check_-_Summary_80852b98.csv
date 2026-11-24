@@ -1,0 +1,28 @@
+Claim audit tracker,,,,,,,
+Counts below update automatically from each sheet's Result column.,,,,,,,
+,,,,,,,
+Sheet,Leads,Result filled,Remaining,CONFIRMED,REFUTED,CANNOT VERIFY,CONFIGURATION
+A1 HIGH,78,78,0,33,33,12,—
+A2 PARTIAL,81,81,0,45,28,8,—
+A3 LOW,6,6,0,2,0,4,—
+B Phone Check,26,2,24,1,0,0,1
+C Marketplace,78,78,0,—,—,—,—
+Total,269,245,24,81,61,24,1
+"Table D (rewrite / no verify) has no Result column, so it is not counted here.",,,,,,,
+,,,,,,,
+How to use,,,,,,,
+Yellow cells are the ones you fill in; everything else is reference data.,,,,,,,
+AI Result (A1–A3): paste the raw answer AI Studio gives for that row's question.,,,,,,,
+Result: pick the final verdict from the dropdown after you have checked the AI answer against the live site.,,,,,,,
+"Columns D–E (A sheets) are the working block next to the question; URL, Claim and the can/can't note sit to the right for reference.",,,,,,,
+"A1–A3: CONFIRMED / REFUTED / CANNOT VERIFY. B: also CONFIGURATION (intentional hours/pause toggle); REFUTED = the ""FALSE if"" case.",,,,,,,
+C: NOT LISTED / LISTED - FAIR PRICES / LISTED - INFLATED (compare 3 menu-item prices with their own site).,,,,,,,
+"The # column keeps the numbering from the combined audit file, so rows are not consecutive in A1–A3.",,,,,,,
+,,,,,,,
+"Format example (illustrative only, not real data)",,,,,,,
+AI Result:,"VERDICT: CONFIRMED · EVIDENCE: <a href=""https://order.toasttab.com/online/example""> · LIMITATION: static HTML, no JS needed",,,,,,
+Result:,CONFIRMED,,,,,,
+,,,,,,,
+Optional columns (gold headers),,,,,,,
+"A1–A3, column I ""Corrected Prompt"": rewrite the question when the AI result shows the original claim was off, then re-run it for a cleaner check.",,,,,,,
+"B and C, column G ""Explanation"": note what you saw (e.g. why you chose the Result). Leave blank if not needed; nothing depends on these columns.",,,,,,,

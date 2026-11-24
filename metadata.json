@@ -1,0 +1,6 @@
+{
+  "name": "Claim Audit Consolidator",
+  "description": "Multi-sheet restaurant claim audit deduplicator, priority resolver, and Excel workbook exporter.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
